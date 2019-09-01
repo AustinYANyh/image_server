@@ -10,85 +10,105 @@ using namespace std;
 
 static MYSQL* MySQLInit()
 {
-    MYSQL* mysql = mysql_init(NULL);
+	MYSQL* mysql = mysql_init(NULL);
 
-    mysql_options(mysql, MYSQL_SET_CHARSET_NAME, "gbk");
+	mysql_options(mysql, MYSQL_SET_CHARSET_NAME, "gbk");
 
-    mysql_real_connect(mysql, "localhost", "root", "123", "image", 3306, NULL, 0);
+	if(mysql_real_connect(mysql, "localhost", "root", "123", "image", 3306, NULL, 0)==NULL)
+	{
+		cout<<"数据库连接失败"<<endl;
+	}
 
-    return mysql;
+	cout<<"数据库连接成功"<<endl;
+	cout << endl;
+	return mysql;
 }
 
 static void MySQLRelease(MYSQL* mysql)
 {
-    mysql_close(mysql);
+	mysql_close(mysql);
 }
 
 class image_table
 {
-    public:
+public:
 	image_table(MYSQL* mysql) :_mysql(mysql)
-    {
+	{
 
-    }
+	}
 
 	bool Insert(const Json::Value& image)
 	{
 
-	    char sql[4 * 1024]={0};
+		char sql[4 * 1024] = { 0 };
 
-	    sprintf(sql, "insert into image_table values(null,'%s',%d,'%s','%s','%s','%s');", image["image_name"].asCString(),
-		    image["image_size"].asInt(), image["upload_time"].asCString(), image["image_type"].asCString(),
-		    image["image_path"].asCString(), image["md5"].asCString());
+		sprintf(sql, "select * from image_table");
 
-	    cout<<"开始插入数据库"<<endl;
+		int ret = mysql_query(_mysql,sql);
 
+		if(ret!=0)
+		{
+			cout<<mysql_error(_mysql)<<endl;
+		 	cout<<"查询失败"<<endl;
+		 	return false;
+		}
 
-		bool check = true;
+    	MYSQL_RES* result = mysql_store_result(_mysql);
 
-		mysql_query(_mysql,sql);
+		int lineno=mysql_num_rows(result);
 
-		// if(check==false)
-		// {
-		// 	cout<<mysql_error(_mysql)<<endl;
-		// 	cout<<"插入数据库失败"<<endl;
-		// 	return false;
-		// }
+		char sql1[4*1024]={0};
 
-		cout<<"插入数据库成功"<<endl;
-	    return true;
+		sprintf(sql1, "insert into image_table values(%d,'%s',%d,'%s','%s','%s','%s');", lineno+1,
+			image["image_name"].asCString(),image["image_size"].asInt(), 
+			image["upload_time"].asCString(), image["image_type"].asCString(),
+			image["image_path"].asCString(), image["md5"].asCString());
+
+		cout << "开始插入数据库" << endl;
+
+		ret = mysql_query(_mysql, sql1);
+
+		 if(ret!=0)
+		 {
+		 	cout<<mysql_error(_mysql)<<endl;
+		 	cout<<"插入数据库失败"<<endl;
+		 	return false;
+		 }
+
+		cout << "插入数据库成功" << endl;
+		return true;
 	}
 
 	bool SelectAll(Json::Value* images)
 	{
-	    char sql[4 * 1024] = { 0 };
+		char sql[4 * 1024] = { 0 };
 
-	    sprintf(sql, "select * from image_table;");
+		sprintf(sql, "select * from image_table;");
 
-		mysql_query(_mysql,sql);
+		int ret = mysql_query(_mysql, sql);
 
-		// if(ret!=0)
-		// {
-		// 	cout<<mysql_error(_mysql)<<endl;
-		// 	cout<<"查找失败"<<endl;
-		// 	return false;
-		// }
+		if (ret != 0)
+		{
+			cout << mysql_error(_mysql) << endl;
+			cout << "查找失败" << endl;
+			return false;
+		}
 
-	    //遍历结果集
-	    MYSQL_RES* mysqlRes = mysql_store_result(_mysql);
+		//遍历结果集
+		MYSQL_RES* mysqlRes = mysql_store_result(_mysql);
 
-	    if (mysqlRes == NULL)
-	    {
+		if (mysqlRes == NULL)
+		{
 			cout << mysql_error(_mysql) << endl;
 			return false;
-	    }
+		}
 
-	    int itemCount = mysql_num_fields(mysqlRes);
+		int itemCount = mysql_num_fields(mysqlRes);
 
-	    MYSQL_ROW mysqlRow;
+		MYSQL_ROW mysqlRow;
 
-	    while (mysqlRow = mysql_fetch_row(mysqlRes))
-	    {
+		while (mysqlRow = mysql_fetch_row(mysqlRes))
+		{
 
 			//把数据库的每条记录转成json格式
 			Json::Value image;
@@ -101,84 +121,86 @@ class image_table
 			image["md5"] = mysqlRow[6];
 
 			images->append(image);
-	    }
+		}
 
-		cout<<"查找成功"<<endl;
+		cout << "查找成功" << endl;
 
-	    mysql_free_result(mysqlRes);
+		mysql_free_result(mysqlRes);
 
-	    return true;
+		return true;
 	}
 
-	bool SelectOne(int image_id,Json::Value* imageOne)
+	bool SelectOne(int image_id, Json::Value* imageOne)
 	{
-	    char sql[4 * 1024];
+		char sql[4 * 1024];
 
-	    sprintf(sql, "select * from image_table where image_id= %d;",image_id);
+		sprintf(sql, "select * from image_table where image_id= %d;", image_id);
 
-	    mysql_query(_mysql, sql);
+		int ret = mysql_query(_mysql, sql);
 
-	    // if (ret!=0)
-	    // {
-		// 	cout << "查找失败" << endl;
-		// 	cout << mysql_error(_mysql) << endl;
-		// 	return false;
-	    // }
+		if (ret != 0)
+		{
+			cout << "查找失败" << endl;
+			cout << mysql_error(_mysql) << endl;
+			return false;
+		}
 
-	    //遍历结果集合
-	    MYSQL_RES* mysqlRes = mysql_store_result(_mysql);
+		//遍历结果集合
+		MYSQL_RES* mysqlRes = mysql_store_result(_mysql);
 
-	    int Rows = mysql_num_rows(mysqlRes);
+		int Rows = mysql_num_rows(mysqlRes);
 
-	    if (Rows != 1)
-	    {
+		if (Rows != 1)
+		{
 			cout << "不止一条信息" << endl;
-	    }
+			return false;
+		}
 
-	    MYSQL_ROW mysqlRow;
+		MYSQL_ROW mysqlRow;
 
-	    //int itemCount = mysql_num_fields(mysqlRes);
+		//int itemCount = mysql_num_fields(mysqlRes);
 
-	    while (mysqlRow = mysql_fetch_row(mysqlRes))
-	    {
-		    //把数据库的每条记录转成json格式
-		    Json::Value image;
-		    image["image_id"] = atoi(mysqlRow[0]);
-		    image["image_name"] = mysqlRow[1];
-		    image["image_size"] = atoi(mysqlRow[2]);
-		    image["upload_time"] = mysqlRow[3];
-		    image["image_type"] = mysqlRow[4];
-		    image["image_path"] = mysqlRow[5];
-		    image["md5"] = mysqlRow[6];
+		while (mysqlRow = mysql_fetch_row(mysqlRes))
+		{
+			//把数据库的每条记录转成json格式
+			Json::Value image;
+			image["image_id"] = atoi(mysqlRow[0]);
+			image["image_name"] = mysqlRow[1];
+			image["image_size"] = atoi(mysqlRow[2]);
+			image["upload_time"] = mysqlRow[3];
+			image["image_type"] = mysqlRow[4];
+			image["image_path"] = mysqlRow[5];
+			image["md5"] = mysqlRow[6];
 
-		    *imageOne = image;
-	    }
+			*imageOne = image;
+		}
 
-		cout<<"查找成功"<<endl;
+		cout << "查找成功" << endl;
 
-	    mysql_free_result(mysqlRes);
+		mysql_free_result(mysqlRes);
 
-	    return true;
+		return true;
 
 	}
 
 	bool Delete(int image_id)
 	{
-	    char sql[4 * 1024] = { 0 };
+		char sql[4 * 1024] = { 0 };
 
-	    sprintf(sql, "delete from image_table where image_id= %d;", image_id);
+		sprintf(sql, "delete from image_table where image_id= %d;", image_id);
 
-	    mysql_query(_mysql, sql);
+		int ret = mysql_query(_mysql, sql);
 
-	    // if (ret!=0)
-	    // {
-		// 	cout << "删除失败" << endl;
-		// 	cout << mysql_error(_mysql) << endl;
-		// 	return false;
-	    // }
+		if (ret != 0)
+		{
+			cout << "删除失败" << endl;
+			cout << mysql_error(_mysql) << endl;
+			return false;
+		}
 
-		cout<<"删除成功"<<endl;
-	    return true;
+		cout << "删除成功" << endl;
+		cout << endl;
+		return true;
 	}
 
 private:
