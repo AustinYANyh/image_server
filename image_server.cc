@@ -21,6 +21,7 @@ namespace File
 		if ((fp = fopen(path.c_str(), "rb")) == NULL)
 		{
 			cout << "Open image failed!" << endl;
+			return false;
 			exit(0);
 		}
 
@@ -31,6 +32,7 @@ namespace File
 		fread((char*)body.c_str(), t, 1, fp);
 
 		fclose(fp);
+		return true;
 	}
 }
 
