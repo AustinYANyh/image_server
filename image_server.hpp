@@ -12,7 +12,8 @@ static MYSQL* MySQLInit()
 {
 	MYSQL* mysql = mysql_init(NULL);
 
-	mysql_options(mysql, MYSQL_SET_CHARSET_NAME, "gbk");
+	mysql_options(mysql, MYSQL_SET_CHARSET_NAME, "utf8");
+	//mysql_set_character_set(mysql,"utf8");
 
 	if(mysql_real_connect(mysql, "localhost", "root", "123", "image", 3306, NULL, 0)==NULL)
 	{
@@ -72,6 +73,7 @@ public:
 		 {
 		 	cout<<mysql_error(_mysql)<<endl;
 		 	cout<<"插入数据库失败"<<endl;
+			cout<<endl;
 		 	return false;
 		 }
 
